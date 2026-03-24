@@ -1,8 +1,7 @@
 import { WebSocketServer } from 'ws';
-import { config } from 'dotenv';
+import 'dotenv/config';
 import { ColorLog } from './utils/ColorLog';
 
-config();
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
 const wss = new WebSocketServer({ port: PORT });
