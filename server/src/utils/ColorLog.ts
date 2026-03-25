@@ -3,6 +3,7 @@ export class ColorLog {
   private static plainColor = '#e0def4';
   private static primaryColor = '#ebbcba';
   private static secondaryColor = '#31748f';
+  private static tertiaryColor = '#c4a7e7';
   private static subtleColor = '#908caa';
   private static warnColor = '#f6c177';
   private static errorColor = '#eb6f92';
@@ -39,6 +40,9 @@ export class ColorLog {
   public static secondary(text: string) {
     this.log(text, this.secondaryColor, this.bg);
   }
+  public static tertiary(text: string) {
+    this.log(text, this.tertiaryColor, this.bg);
+  }
   public static subtle(text: string) {
     this.log(text, this.subtleColor, this.bg);
   }
@@ -48,7 +52,6 @@ export class ColorLog {
   public static error(text: string) {
     this.log(text, this.errorColor, this.bg);
   }
-
   public static success(text: string) {
     this.log(text, this.successColor, this.bg);
   }

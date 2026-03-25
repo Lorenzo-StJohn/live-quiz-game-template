@@ -4,8 +4,8 @@ import { sendWs } from '../../utils/sendWs';
 import type { Reducer } from '../types';
 
 const CONNECTION = 'connection';
+const DISCONNECTION = 'disconnection';
 const REG = 'reg';
-const CLOSE = 'close';
 
 const ERROR_MESSAGE = 'Wrong password';
 
@@ -60,7 +60,7 @@ export const userReducer: Reducer<User[]> = (state, action) => {
       return state;
     }
 
-    case CLOSE: {
+    case DISCONNECTION: {
       ColorLog.subtle('👻 Someone disconnected');
       const userFound = state.find((user) => user.ws === action.data.wsClient);
       if (!userFound) {

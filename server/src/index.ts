@@ -1,4 +1,4 @@
-import { type WebSocket, WebSocketServer } from 'ws';
+import { WebSocket, WebSocketServer } from 'ws';
 import 'dotenv/config';
 
 import { ColorLog } from './utils/ColorLog';
@@ -45,10 +45,28 @@ wss.on('connection', (wsClient: WebSocket) => {
   wsClient.once('close', () => {
     wsClient.removeAllListeners();
     userStore.dispatch({
-      type: 'close',
+      type: 'disconnection',
       data: {
         wsClient,
       },
     });
   });
 });
+
+function gracefulShutdown() {
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.terminate();
+    }
+  });
+
+  wss.close(() => {
+    ColorLog.tertiary(
+      '\n🔌 WebSocket server closed. Thank you for using our service ♥',
+    );
+    process.exit(0);
+  });
+}
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
