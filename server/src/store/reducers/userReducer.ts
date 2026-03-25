@@ -1,3 +1,4 @@
+import { WebSocket } from 'ws';
 import type { User } from '../../types';
 import { ColorLog } from '../../utils/ColorLog';
 import { sendWs } from '../../utils/sendWs';
@@ -9,7 +10,9 @@ const REG = 'reg';
 
 const ERROR_MESSAGE = 'Wrong password';
 
-export const userReducer: Reducer<User[]> = (state, action) => {
+const clientNameMap = new Map<WebSocket, string>();
+
+export const userReducer: Reducer<Map<string, User>> = (state, action) => {
   switch (action.type) {
     case CONNECTION: {
       ColorLog.secondary('☎️  New connection to server');
@@ -19,38 +22,36 @@ export const userReducer: Reducer<User[]> = (state, action) => {
     case REG: {
       const name = action.data.name;
       const password = action.data.password;
-      let index = `id${state.length}`;
+      let index = `id${state.size}`;
       let error = false;
       let errorText = '';
       const client = action.data.wsClient;
 
-      const userFound = state.find((user) => user.name === name);
+      const isRegistered = state.has(name);
 
-      if (!userFound) {
+      if (!isRegistered) {
         const user: User = {
           name,
           password,
           index,
-          ws: client,
+          ws: [client],
         };
         sendWs(client, { name, index, error, errorText }, REG);
         ColorLog.success(`🎭 Successful login for ${name}`);
-        return [...state, user];
+        const newState = new Map(state);
+        newState.set(name, user);
+        clientNameMap.set(client, name);
+        return newState;
       }
 
-      index = userFound.index;
-      if (userFound.password === password) {
+      const userRegistered = state.get(name)!;
+      index = userRegistered.index;
+      if (userRegistered.password === password) {
         sendWs(client, { name, index, error, errorText }, REG);
-        const userLogOut = state.find((user) => user.name === name && !user.ws);
-
-        if (userLogOut) {
-          userLogOut.ws = client;
-          ColorLog.success(`🎭 Successful login for ${name}`);
-          return [...state];
-        }
-
+        userRegistered.ws.push(client);
+        clientNameMap.set(client, name);
         ColorLog.success(`🎭 Successful login for ${name}`);
-        return [...state, { name, password, index, ws: client }];
+        return new Map(state);
       }
 
       error = true;
@@ -62,12 +63,13 @@ export const userReducer: Reducer<User[]> = (state, action) => {
 
     case DISCONNECTION: {
       ColorLog.subtle('👻 Someone disconnected');
-      const userFound = state.find((user) => user.ws === action.data.wsClient);
-      if (!userFound) {
+      const name = clientNameMap.get(action.data.wsClient);
+      if (!name) {
         return state;
       }
-      delete userFound.ws;
-      return [...state];
+      const user = state.get(name)!;
+      user.ws = user.ws.filter((ws) => ws !== action.data.wsClient);
+      return new Map(state);
     }
 
     default: {

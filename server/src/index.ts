@@ -22,7 +22,10 @@ if (PORT !== 3000) {
   );
 }
 
-const userStore = new Store<User[]>(userReducer, []);
+const userStore = new Store<Map<string, User>>(
+  userReducer,
+  new Map<string, User>(),
+);
 
 wss.on('connection', (wsClient: WebSocket) => {
   userStore.dispatch({ type: 'connection', data: null });

@@ -34,7 +34,7 @@ export interface User {
   name: string;
   password: string;
   index: string;
-  ws?: WebSocket;
+  ws: WebSocket[];
 }
 
 export interface WSMessage {
