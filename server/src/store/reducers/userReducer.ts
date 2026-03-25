@@ -15,6 +15,7 @@ export const userReducer: Reducer<User[]> = (state, action) => {
       ColorLog.secondary('☎️  New connection to server');
       return state;
     }
+
     case REG: {
       const name = action.data.name;
       const password = action.data.password;
@@ -22,7 +23,9 @@ export const userReducer: Reducer<User[]> = (state, action) => {
       let error = false;
       let errorText = '';
       const client = action.data.wsClient;
+
       const userFound = state.find((user) => user.name === name);
+
       if (!userFound) {
         const user: User = {
           name,
@@ -34,24 +37,29 @@ export const userReducer: Reducer<User[]> = (state, action) => {
         ColorLog.success(`🎭 Successful login for ${name}`);
         return [...state, user];
       }
+
       index = userFound.index;
       if (userFound.password === password) {
         sendWs(client, { name, index, error, errorText }, REG);
         const userLogOut = state.find((user) => user.name === name && !user.ws);
+
         if (userLogOut) {
           userLogOut.ws = client;
           ColorLog.success(`🎭 Successful login for ${name}`);
           return [...state];
         }
+
         ColorLog.success(`🎭 Successful login for ${name}`);
         return [...state, { name, password, index, ws: client }];
       }
+
       error = true;
       errorText = ERROR_MESSAGE;
       sendWs(client, { name, index, error, errorText }, REG);
       ColorLog.error('❌ Registration/login failed');
       return state;
     }
+
     case CLOSE: {
       ColorLog.subtle('👻 Someone disconnected');
       const userFound = state.find((user) => user.ws === action.data.wsClient);
@@ -61,6 +69,9 @@ export const userReducer: Reducer<User[]> = (state, action) => {
       delete userFound.ws;
       return [...state];
     }
+
+    default: {
+      return state;
+    }
   }
-  return state;
 };
