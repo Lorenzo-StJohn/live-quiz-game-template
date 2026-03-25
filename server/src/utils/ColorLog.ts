@@ -6,6 +6,7 @@ export class ColorLog {
   private static subtleColor = '#908caa';
   private static warnColor = '#f6c177';
   private static errorColor = '#eb6f92';
+  private static successColor = '#9ccfd8';
 
   private constructor() {}
 
@@ -46,5 +47,9 @@ export class ColorLog {
   }
   public static error(text: string) {
     this.log(text, this.errorColor, this.bg);
+  }
+
+  public static success(text: string) {
+    this.log(text, this.successColor, this.bg);
   }
 }
