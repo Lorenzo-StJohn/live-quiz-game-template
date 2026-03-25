@@ -38,10 +38,7 @@ export const userReducer: Reducer<Map<string, User>> = (state, action) => {
         };
         sendWs(client, { name, index, error, errorText }, REG);
         ColorLog.success(`🎭 Successful login for ${name}`);
-        const newState = new Map(state);
-        newState.set(name, user);
-        clientNameMap.set(client, name);
-        return newState;
+        return new Map([...state, [name, user]]);
       }
 
       const userRegistered = state.get(name)!;
