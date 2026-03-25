@@ -1,4 +1,10 @@
-import type { WSMessage, RegData } from '../types';
+import {
+  type WSMessage,
+  type RegData,
+  type Question,
+  MessageTypeUser,
+  MessageTypeGame,
+} from '../types';
 
 const isWSMessage = (msg: unknown): msg is WSMessage => {
   return (
@@ -23,6 +29,37 @@ const isRegData = (data: unknown): data is RegData => {
   );
 };
 
+const isQuestion = (data: unknown, optionNumber: number): data is Question => {
+  if (typeof data !== 'object' || data === null) {
+    return false;
+  }
+  if (!('text' in data) || typeof data.text !== 'string') {
+    return false;
+  }
+  if (
+    !('options' in data) ||
+    !Array.isArray(data.options) ||
+    data.options.length !== optionNumber
+  ) {
+    return false;
+  }
+  for (const option in data.options) {
+    if (typeof option !== 'string') {
+      return false;
+    }
+  }
+
+  return (
+    'correctIndex' in data &&
+    typeof data.correctIndex === 'number' &&
+    data.correctIndex >= 0 &&
+    data.correctIndex < optionNumber &&
+    'timeLimitSec' in data &&
+    typeof data.timeLimitSec === 'number' &&
+    data.timeLimitSec > 0
+  );
+};
+
 export const commonParse = (msg: any) => {
   const message = msg.toString();
   if (typeof message !== 'string') {
@@ -34,8 +71,11 @@ export const commonParse = (msg: any) => {
       return null;
     }
     switch (msg.type) {
-      case 'reg': {
+      case MessageTypeUser.REGISTRATION: {
         return registrationLoginParse(msg);
+      }
+      case MessageTypeGame.CREATE_GAME: {
+        return gameCreationParse(msg);
       }
       default: {
         return null;
@@ -48,4 +88,17 @@ export const commonParse = (msg: any) => {
 
 const registrationLoginParse = (message: WSMessage): WSMessage | null => {
   return isRegData(message.data) ? message : null;
+};
+
+const gameCreationParse = (message: WSMessage): WSMessage | null => {
+  return 'questions' in message.data &&
+    Array.isArray(message.data.questions) &&
+    message.data.questions.length > 0 &&
+    message.data.questions.reduce(
+      (accumulator: boolean, currentQuestion: unknown) =>
+        isQuestion(currentQuestion, 4) && accumulator,
+      true,
+    )
+    ? message
+    : null;
 };

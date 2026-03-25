@@ -37,8 +37,30 @@ export interface User {
   ws: WebSocket[];
 }
 
+export const MessageTypeUser = {
+  REGISTRATION: 'reg',
+  CONNECTION: 'connection',
+  DISCONNECTION: 'disconnection',
+} as const;
+
+export const MessageTypeGame = {
+  CREATE_GAME: 'create_game',
+  CREATE_GAME_SUCCESS: 'game_created',
+} as const;
+
+export const MessageTypeError = {
+  ERROR: 'error',
+} as const;
+
+type MessageTypeKnown =
+  | (typeof MessageTypeUser)[keyof typeof MessageTypeUser]
+  | (typeof MessageTypeGame)[keyof typeof MessageTypeGame]
+  | (typeof MessageTypeError)[keyof typeof MessageTypeError];
+
+type MessageTypeUnknown = string;
+
 export interface WSMessage {
-  type: string;
+  type: MessageTypeKnown | MessageTypeUnknown;
   data: any;
   id: number;
 }

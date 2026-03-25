@@ -1,33 +1,34 @@
-import { WebSocket } from 'ws';
-import type { User } from '../../types';
+import type { WebSocket } from 'ws';
+import { MessageTypeUser, type User } from '../../types';
 import { ColorLog } from '../../utils/ColorLog';
 import { sendWs } from '../../utils/sendWs';
-import type { Reducer } from '../types';
-
-const CONNECTION = 'connection';
-const DISCONNECTION = 'disconnection';
-const REG = 'reg';
+import type { Reducer, UserState } from '../types';
 
 const ERROR_MESSAGE = 'Wrong password';
 
-const clientNameMap = new Map<WebSocket, string>();
-
-export const userReducer: Reducer<Map<string, User>> = (state, action) => {
+export const userReducer: Reducer<UserState> = (state, action) => {
   switch (action.type) {
-    case CONNECTION: {
+    case MessageTypeUser.CONNECTION: {
       ColorLog.secondary('☎️  New connection to server');
       return state;
     }
 
-    case REG: {
+    case MessageTypeUser.REGISTRATION: {
       const name = action.data.name;
       const password = action.data.password;
-      let index = `id${state.size}`;
+      let index = `id${state.nameMap.size}`;
       let error = false;
       let errorText = '';
-      const client = action.data.wsClient;
+      const client: WebSocket = action.data.wsClient;
 
-      const isRegistered = state.has(name);
+      if (state.socketMap.has(client)) {
+        const oldName = state.socketMap.get(client)!;
+        state.socketMap.delete(client);
+        const oldUser = state.nameMap.get(oldName)!;
+        oldUser.ws = oldUser.ws.filter((ws) => ws !== client);
+      }
+
+      const isRegistered = state.nameMap.has(name);
 
       if (!isRegistered) {
         const user: User = {
@@ -36,37 +37,60 @@ export const userReducer: Reducer<Map<string, User>> = (state, action) => {
           index,
           ws: [client],
         };
-        sendWs(client, { name, index, error, errorText }, REG);
+        sendWs(
+          client,
+          { name, index, error, errorText },
+          MessageTypeUser.REGISTRATION,
+        );
         ColorLog.success(`🎭 Successful login for ${name}`);
-        return new Map([...state, [name, user]]);
+        const nameMap = new Map([...state.nameMap, [name, user]]);
+        state.socketMap.set(client, name);
+        const socketMap = new Map(state.socketMap);
+        return { nameMap, socketMap };
       }
 
-      const userRegistered = state.get(name)!;
+      const userRegistered = state.nameMap.get(name)!;
       index = userRegistered.index;
       if (userRegistered.password === password) {
-        sendWs(client, { name, index, error, errorText }, REG);
-        userRegistered.ws.push(client);
-        clientNameMap.set(client, name);
+        sendWs(
+          client,
+          { name, index, error, errorText },
+          MessageTypeUser.REGISTRATION,
+        );
         ColorLog.success(`🎭 Successful login for ${name}`);
-        return new Map(state);
+        userRegistered.ws.push(client);
+        const nameMap = new Map(state.nameMap);
+        state.socketMap.set(client, name);
+        const socketMap = new Map(state.socketMap);
+        return { nameMap, socketMap };
       }
 
       error = true;
       errorText = ERROR_MESSAGE;
-      sendWs(client, { name, index, error, errorText }, REG);
+      sendWs(
+        client,
+        { name, index, error, errorText },
+        MessageTypeUser.REGISTRATION,
+      );
       ColorLog.error('❌ Registration/login failed');
-      return state;
+      const nameMap = new Map(state.nameMap);
+      const socketMap = new Map(state.socketMap);
+      return { nameMap, socketMap };
     }
 
-    case DISCONNECTION: {
+    case MessageTypeUser.DISCONNECTION: {
       ColorLog.subtle('👻 Someone disconnected');
-      const name = clientNameMap.get(action.data.wsClient);
+      const client: WebSocket = action.data.wsClient;
+      const name = state.socketMap.get(client);
       if (!name) {
         return state;
       }
-      const user = state.get(name)!;
-      user.ws = user.ws.filter((ws) => ws !== action.data.wsClient);
-      return new Map(state);
+      const user = state.nameMap.get(name)!;
+      user.ws = user.ws.filter((ws) => ws !== client);
+      const nameMap = new Map(state.nameMap);
+      state.socketMap.delete(client);
+      const socketMap = new Map(state.socketMap);
+      return { nameMap, socketMap };
     }
 
     default: {

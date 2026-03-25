@@ -1,3 +1,4 @@
+import { WebSocket } from 'ws';
 import type { Game, Player, User } from '../types';
 
 export interface State {
@@ -14,3 +15,10 @@ export interface Action {
 export type Reducer<T> = (state: T, action: Action) => T;
 
 export type Listener<T> = (state: T) => void;
+
+export interface UserState {
+  nameMap: Map<string, User>;
+  socketMap: Map<WebSocket, string>;
+}
+
+export type GameState = Map<string, Game>;

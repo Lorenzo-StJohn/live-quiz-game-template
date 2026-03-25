@@ -4,14 +4,25 @@ import 'dotenv/config';
 import { ColorLog } from './utils/ColorLog';
 import { Store } from './store/store';
 import { userReducer } from './store/reducers/userReducer';
-import type { User } from './types';
+import {
+  MessageTypeError,
+  MessageTypeGame,
+  MessageTypeUser,
+  type User,
+} from './types';
 import { commonParse } from './utils/json-parse';
 import { sendWs } from './utils/sendWs';
+import type { GameState, UserState } from './store/types';
+import { gameReducer } from './store/reducers/gameReducer';
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 const ERROR_MESSAGE = {
   message: 'Invalid request',
 };
+const USER_ERROR_MESSAGE = {
+  message: 'Unknown user',
+};
+const ANONYM = 'anonym';
 
 const wss = new WebSocketServer({ port: PORT });
 
@@ -22,24 +33,49 @@ if (PORT !== 3000) {
   );
 }
 
-const userStore = new Store<Map<string, User>>(
-  userReducer,
-  new Map<string, User>(),
-);
+const userStore = new Store<UserState>(userReducer, {
+  nameMap: new Map<string, User>(),
+  socketMap: new Map<WebSocket, string>(),
+});
+
+let userState = userStore.getState();
+userStore.subscribe((state) => (userState = state));
+
+const gameStore = new Store<GameState>(gameReducer, new Map());
 
 wss.on('connection', (wsClient: WebSocket) => {
-  userStore.dispatch({ type: 'connection', data: null });
+  userStore.dispatch({ type: MessageTypeUser.CONNECTION, data: null });
 
   wsClient.on('message', (msg: unknown) => {
     const message = commonParse(msg);
     if (!message) {
-      return sendWs(wsClient, ERROR_MESSAGE, 'error');
+      const name = userState.socketMap.get(wsClient) ?? ANONYM;
+      ColorLog.error(`❌ Wrong request from ${name}`);
+      return sendWs(wsClient, ERROR_MESSAGE, MessageTypeError.ERROR);
     }
+
     switch (message.type) {
-      case 'reg': {
+      case MessageTypeUser.REGISTRATION: {
         userStore.dispatch({
-          type: 'reg',
+          type: MessageTypeUser.REGISTRATION,
           data: { ...message.data, wsClient },
+        });
+        break;
+      }
+
+      case MessageTypeGame.CREATE_GAME: {
+        const hostName = userState.socketMap.get(wsClient);
+        if (!hostName) {
+          return sendWs(wsClient, USER_ERROR_MESSAGE, MessageTypeError.ERROR);
+        }
+        const hostId = userState.nameMap.get(hostName)?.index;
+        gameStore.dispatch({
+          type: message.type,
+          data: {
+            questions: message.data.questions,
+            hostId,
+            wsClient,
+          },
         });
       }
     }
@@ -48,7 +84,7 @@ wss.on('connection', (wsClient: WebSocket) => {
   wsClient.once('close', () => {
     wsClient.removeAllListeners();
     userStore.dispatch({
-      type: 'disconnection',
+      type: MessageTypeUser.DISCONNECTION,
       data: {
         wsClient,
       },
