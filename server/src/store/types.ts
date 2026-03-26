@@ -1,4 +1,5 @@
 import { WebSocket } from 'ws';
+
 import type { User } from '../types';
 
 export interface Action {

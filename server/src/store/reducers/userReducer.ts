@@ -1,4 +1,5 @@
 import type { WebSocket } from 'ws';
+
 import { MessageTypeUser, type User } from '../../types';
 import { ColorLog } from '../../utils/ColorLog';
 import { sendWs } from '../../utils/sendWs';
