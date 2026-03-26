@@ -51,6 +51,9 @@ export const MessageTypeGame = {
   JOIN_GAME_SUCCESS: 'game_joined',
   PLAYER_JOIN: 'player_joined',
   UPDATE_PLAYERS: 'update_players',
+  START_GAME: 'start_game',
+  NEXT_QUESTION: 'next_question',
+  QUESTION: 'question',
 } as const;
 
 export const MessageTypeError = {

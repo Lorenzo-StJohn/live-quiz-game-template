@@ -41,7 +41,7 @@ class GameService {
 
     const questions: Question[] = action.data.questions;
     const players: Player[] = [];
-    const currentQuestion = 0;
+    const currentQuestion = -1;
     const status: Game['status'] = 'waiting';
     const playerAnswers: Game['playerAnswers'] = new Map();
 
@@ -65,6 +65,17 @@ class GameService {
     const gameStore = new Store<Game>(gameReducer, game);
     this.games.set(game.id, gameStore);
     this.codeMap.set(game.code, game.id);
+
+    gameStore.subscribe((state, action) => {
+      if (action.type === MessageTypeGame.START_GAME) {
+        gameStore.dispatch({
+          type: MessageTypeGame.NEXT_QUESTION,
+          data: {
+            players: state.players,
+          },
+        });
+      }
+    });
   }
 
   public handleDisconnect(action: Action) {
@@ -101,6 +112,24 @@ class GameService {
       type: MessageTypeGame.JOIN_GAME,
       data: { name, index, client },
     });
+  }
+
+  public startGame(action: Action) {
+    const client: WebSocket = action.data.wsClient;
+    const { index, gameId } = action.data;
+
+    const game = this.games.get(gameId);
+    if (!game) {
+      sendWs(
+        client,
+        { message: `Game with specified id not found` },
+        MessageTypeError.ERROR,
+      );
+      ColorLog.error(`❌ Game with id ${gameId} not found`);
+      return;
+    }
+
+    game.dispatch(action);
   }
 }
 

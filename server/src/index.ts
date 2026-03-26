@@ -85,6 +85,24 @@ wss.on('connection', (wsClient: WebSocket) => {
             index,
           },
         });
+        break;
+      }
+
+      case MessageTypeGame.START_GAME: {
+        const name = userState.socketMap.get(wsClient);
+        if (!name) {
+          return sendWs(wsClient, USER_ERROR_MESSAGE, MessageTypeError.ERROR);
+        }
+        const index = userState.nameMap.get(name)!.index;
+        gameService.startGame({
+          type: MessageTypeGame.START_GAME,
+          data: {
+            wsClient,
+            index,
+            gameId: message.data.gameId,
+          },
+        });
+        break;
       }
     }
   });
