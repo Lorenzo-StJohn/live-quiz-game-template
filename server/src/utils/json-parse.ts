@@ -77,6 +77,9 @@ export const commonParse = (msg: any) => {
       case MessageTypeGame.CREATE_GAME: {
         return gameCreationParse(msg);
       }
+      case MessageTypeGame.JOIN_GAME: {
+        return gameJoiningParse(msg);
+      }
       default: {
         return null;
       }
@@ -99,6 +102,14 @@ const gameCreationParse = (message: WSMessage): WSMessage | null => {
         isQuestion(currentQuestion, 4) && accumulator,
       true,
     )
+    ? message
+    : null;
+};
+
+const gameJoiningParse = (message: WSMessage): WSMessage | null => {
+  return 'code' in message.data &&
+    typeof message.data.code === 'string' &&
+    message.data.code.length === 6
     ? message
     : null;
 };

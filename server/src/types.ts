@@ -4,7 +4,7 @@ export interface Player {
   name: string;
   index: string;
   score: number;
-  ws?: WebSocket;
+  ws: WebSocket[];
   hasAnswered?: boolean;
   answerTime?: number;
   answeredCorrectly?: boolean;
@@ -21,6 +21,7 @@ export interface Game {
   id: string;
   code: string;
   hostId: string;
+  hostWs: WebSocket[];
   questions: Question[];
   players: Player[];
   currentQuestion: number;
@@ -46,6 +47,10 @@ export const MessageTypeUser = {
 export const MessageTypeGame = {
   CREATE_GAME: 'create_game',
   CREATE_GAME_SUCCESS: 'game_created',
+  JOIN_GAME: 'join_game',
+  JOIN_GAME_SUCCESS: 'game_joined',
+  PLAYER_JOIN: 'player_joined',
+  UPDATE_PLAYERS: 'update_players',
 } as const;
 
 export const MessageTypeError = {

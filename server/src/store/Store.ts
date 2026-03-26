@@ -20,7 +20,7 @@ export class Store<T> {
 
     if (newState !== this.#state) {
       this.#state = newState;
-      this.#listeners.forEach((listener) => listener(this.#state));
+      this.#listeners.forEach((listener) => listener(this.#state, action));
     }
   }
 

@@ -2,29 +2,20 @@ import { WebSocket, WebSocketServer } from 'ws';
 import 'dotenv/config';
 
 import { ColorLog } from './utils/ColorLog';
-import { Store } from './store/store';
-import { userReducer } from './store/reducers/userReducer';
-import {
-  MessageTypeError,
-  MessageTypeGame,
-  MessageTypeUser,
-  type User,
-} from './types';
+import { MessageTypeError, MessageTypeGame, MessageTypeUser } from './types';
 import { commonParse } from './utils/json-parse';
 import { sendWs } from './utils/sendWs';
-import type { GameState, UserState } from './store/types';
-import { gameReducer } from './store/reducers/gameReducer';
+import { userStore } from './store/userStore';
+import { gameService } from './services/gameService';
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 const ERROR_MESSAGE = {
   message: 'Invalid request',
 };
-const USER_ERROR_MESSAGE = {
-  message: 'Unknown user',
-};
+
 const ANONYM = 'anonym';
 
-const wss = new WebSocketServer({ port: PORT });
+export const wss = new WebSocketServer({ port: PORT });
 
 ColorLog.primary(`🚀 WebSocket server starts on ws://localhost:${PORT}\n`);
 if (PORT !== 3000) {
@@ -33,15 +24,8 @@ if (PORT !== 3000) {
   );
 }
 
-const userStore = new Store<UserState>(userReducer, {
-  nameMap: new Map<string, User>(),
-  socketMap: new Map<WebSocket, string>(),
-});
-
 let userState = userStore.getState();
 userStore.subscribe((state) => (userState = state));
-
-const gameStore = new Store<GameState>(gameReducer, new Map());
 
 wss.on('connection', (wsClient: WebSocket) => {
   userStore.dispatch({ type: MessageTypeUser.CONNECTION, data: null });
@@ -64,17 +48,22 @@ wss.on('connection', (wsClient: WebSocket) => {
       }
 
       case MessageTypeGame.CREATE_GAME: {
-        const hostName = userState.socketMap.get(wsClient);
-        if (!hostName) {
-          return sendWs(wsClient, USER_ERROR_MESSAGE, MessageTypeError.ERROR);
-        }
-        const hostId = userState.nameMap.get(hostName)?.index;
-        gameStore.dispatch({
-          type: message.type,
+        gameService.createGame({
+          type: MessageTypeGame.CREATE_GAME,
           data: {
             questions: message.data.questions,
-            hostId,
             wsClient,
+          },
+        });
+        break;
+      }
+
+      case MessageTypeGame.JOIN_GAME: {
+        gameService.joinGame({
+          type: MessageTypeGame.JOIN_GAME,
+          data: {
+            wsClient,
+            code: message.data.code,
           },
         });
       }
