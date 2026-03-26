@@ -14,6 +14,9 @@ const ERROR_MESSAGE = {
 };
 
 const ANONYM = 'anonym';
+const USER_ERROR_MESSAGE = {
+  message: 'Unknown user',
+};
 
 export const wss = new WebSocketServer({ port: PORT });
 
@@ -48,22 +51,38 @@ wss.on('connection', (wsClient: WebSocket) => {
       }
 
       case MessageTypeGame.CREATE_GAME: {
+        const hostName = userState.socketMap.get(wsClient);
+        if (!hostName) {
+          return sendWs(wsClient, USER_ERROR_MESSAGE, MessageTypeError.ERROR);
+        }
+
+        const hostId = userState.nameMap.get(hostName)!.index;
+
         gameService.createGame({
           type: MessageTypeGame.CREATE_GAME,
           data: {
             questions: message.data.questions,
             wsClient,
+            hostId,
           },
         });
         break;
       }
 
       case MessageTypeGame.JOIN_GAME: {
+        const name = userState.socketMap.get(wsClient);
+        if (!name) {
+          return sendWs(wsClient, USER_ERROR_MESSAGE, MessageTypeError.ERROR);
+        }
+        const index = userState.nameMap.get(name)!.index;
+
         gameService.joinGame({
           type: MessageTypeGame.JOIN_GAME,
           data: {
             wsClient,
             code: message.data.code,
+            name,
+            index,
           },
         });
       }
@@ -73,6 +92,12 @@ wss.on('connection', (wsClient: WebSocket) => {
   wsClient.once('close', () => {
     wsClient.removeAllListeners();
     userStore.dispatch({
+      type: MessageTypeUser.DISCONNECTION,
+      data: {
+        wsClient,
+      },
+    });
+    gameService.handleDisconnect({
       type: MessageTypeUser.DISCONNECTION,
       data: {
         wsClient,
