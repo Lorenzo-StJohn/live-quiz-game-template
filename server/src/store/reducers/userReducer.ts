@@ -59,7 +59,9 @@ export const userReducer: Reducer<UserState> = (state, action) => {
           MessageTypeUser.REGISTRATION,
         );
         ColorLog.success(`🎭 Successful login for ${name}`);
-        userRegistered.ws.push(client);
+        if (!userRegistered.ws.includes(client)) {
+          userRegistered.ws.push(client);
+        }
         const nameMap = new Map(state.nameMap);
         state.socketMap.set(client, name);
         const socketMap = new Map(state.socketMap);

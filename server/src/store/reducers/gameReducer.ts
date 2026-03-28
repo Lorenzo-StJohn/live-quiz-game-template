@@ -214,10 +214,12 @@ export const gameReducer: Reducer<Game> = (state, action) => {
         if (state.status === 'in_progress') {
           questionBroadcast(state, client);
         }
-        state.players[playerArrayIndex].ws = [
-          ...state.players[playerArrayIndex].ws,
-          client,
-        ];
+        if (!state.players[playerArrayIndex].ws.includes(client)) {
+          state.players[playerArrayIndex].ws = [
+            ...state.players[playerArrayIndex].ws,
+            client,
+          ];
+        }
         return { ...state };
       }
       const ws = [client];
