@@ -38,7 +38,7 @@ wss.on('connection', (wsClient: WebSocket) => {
     if (!message) {
       const name = userState.socketMap.get(wsClient) ?? ANONYM;
       ColorLog.error(`❌ Wrong request from ${name}`);
-      return sendWs(wsClient, ERROR_MESSAGE, MessageTypeError.ERROR);
+      return sendWs([wsClient], ERROR_MESSAGE, MessageTypeError.ERROR);
     }
 
     switch (message.type) {
@@ -53,7 +53,7 @@ wss.on('connection', (wsClient: WebSocket) => {
       case MessageTypeGame.CREATE_GAME: {
         const hostName = userState.socketMap.get(wsClient);
         if (!hostName) {
-          return sendWs(wsClient, USER_ERROR_MESSAGE, MessageTypeError.ERROR);
+          return sendWs([wsClient], USER_ERROR_MESSAGE, MessageTypeError.ERROR);
         }
 
         const hostId = userState.nameMap.get(hostName)!.index;
@@ -72,7 +72,7 @@ wss.on('connection', (wsClient: WebSocket) => {
       case MessageTypeGame.JOIN_GAME: {
         const name = userState.socketMap.get(wsClient);
         if (!name) {
-          return sendWs(wsClient, USER_ERROR_MESSAGE, MessageTypeError.ERROR);
+          return sendWs([wsClient], USER_ERROR_MESSAGE, MessageTypeError.ERROR);
         }
         const index = userState.nameMap.get(name)!.index;
 
@@ -91,7 +91,7 @@ wss.on('connection', (wsClient: WebSocket) => {
       case MessageTypeGame.START_GAME: {
         const name = userState.socketMap.get(wsClient);
         if (!name) {
-          return sendWs(wsClient, USER_ERROR_MESSAGE, MessageTypeError.ERROR);
+          return sendWs([wsClient], USER_ERROR_MESSAGE, MessageTypeError.ERROR);
         }
         const index = userState.nameMap.get(name)!.index;
         gameService.startGame({
@@ -109,7 +109,7 @@ wss.on('connection', (wsClient: WebSocket) => {
         const timestamp = Date.now();
         const name = userState.socketMap.get(wsClient);
         if (!name) {
-          return sendWs(wsClient, USER_ERROR_MESSAGE, MessageTypeError.ERROR);
+          return sendWs([wsClient], USER_ERROR_MESSAGE, MessageTypeError.ERROR);
         }
         const index = userState.nameMap.get(name)!.index;
 

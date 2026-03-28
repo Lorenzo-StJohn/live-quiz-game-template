@@ -57,19 +57,22 @@ const updateBroadcast = (state: Game, client?: WebSocket) => {
     [],
   );
   if (client) {
-    sendWs(client, data, MessageTypeGame.UPDATE_PLAYERS);
+    sendWs([client], data, MessageTypeGame.UPDATE_PLAYERS);
     return;
   }
 
+  const clients: WebSocket[] = [];
   if (state.hostWs) {
-    sendWs(state.hostWs, data, MessageTypeGame.UPDATE_PLAYERS);
+    clients.push(state.hostWs);
   }
 
   state.players.forEach((player) => {
     player.ws.forEach((ws) => {
-      sendWs(ws, data, MessageTypeGame.UPDATE_PLAYERS);
+      clients.push(ws);
     });
   });
+
+  sendWs(clients, data, MessageTypeGame.UPDATE_PLAYERS);
 };
 
 const questionBroadcast = (state: Game, client?: WebSocket) => {
@@ -86,19 +89,22 @@ const questionBroadcast = (state: Game, client?: WebSocket) => {
   };
 
   if (client) {
-    sendWs(client, data, MessageTypeGame.QUESTION);
+    sendWs([client], data, MessageTypeGame.QUESTION);
     return;
   }
 
+  const clients: WebSocket[] = [];
   state.players.forEach((player) => {
     player.ws.forEach((ws) => {
-      sendWs(ws, data, MessageTypeGame.QUESTION);
+      clients.push(ws);
     });
   });
 
   if (state.hostWs) {
-    sendWs(state.hostWs, data, MessageTypeGame.QUESTION);
+    clients.push(state.hostWs);
   }
+
+  sendWs(clients, data, MessageTypeGame.QUESTION);
 };
 
 const calculateScore = (
@@ -147,15 +153,18 @@ const resultBroadcast = (state: Game) => {
     playerResults,
   };
 
+  const clients: WebSocket[] = [];
   if (state.hostWs) {
-    sendWs(state.hostWs, data, MessageTypeGame.QUESTION_RESULT);
+    clients.push(state.hostWs);
   }
 
   state.players.forEach((player) => {
     player.ws.forEach((ws) => {
-      sendWs(ws, data, MessageTypeGame.QUESTION_RESULT);
+      clients.push(ws);
     });
   });
+
+  sendWs(clients, data, MessageTypeGame.QUESTION_RESULT);
 };
 
 const finishResultBroadcast = (state: Game) => {
@@ -169,15 +178,18 @@ const finishResultBroadcast = (state: Game) => {
   });
   const data = { scoreboard };
 
+  const clients: WebSocket[] = [];
   if (state.hostWs) {
-    sendWs(state.hostWs, data, MessageTypeGame.GAME_FINISHED);
+    clients.push(state.hostWs);
   }
 
   state.players.forEach((player) => {
     player.ws.forEach((ws) => {
-      sendWs(ws, data, MessageTypeGame.GAME_FINISHED);
+      clients.push(ws);
     });
   });
+
+  sendWs(clients, data, MessageTypeGame.GAME_FINISHED);
 };
 
 export const gameReducer: Reducer<Game> = (state, action) => {
@@ -186,13 +198,13 @@ export const gameReducer: Reducer<Game> = (state, action) => {
       const { name, index, client } = action.data;
 
       if (state.hostId === index) {
-        sendWs(client, HOST_ERROR_MESSAGE, MessageTypeError.ERROR);
+        sendWs([client], HOST_ERROR_MESSAGE, MessageTypeError.ERROR);
         ColorLog.error("❌ Hosts can't join their own games");
         return state;
       }
 
       if (state.status === 'finished') {
-        sendWs(client, JOIN_FINISHED_ERROR_MESSAGE, MessageTypeError.ERROR);
+        sendWs([client], JOIN_FINISHED_ERROR_MESSAGE, MessageTypeError.ERROR);
         ColorLog.error(`❌ ${JOIN_FINISHED_ERROR_MESSAGE.message}`);
         return state;
       }
@@ -203,7 +215,7 @@ export const gameReducer: Reducer<Game> = (state, action) => {
 
       if (playerArrayIndex !== -1) {
         sendWs(
-          client,
+          [client],
           { gameId: state.id, code: state.code },
           MessageTypeGame.JOIN_GAME_SUCCESS,
         );
@@ -232,7 +244,7 @@ export const gameReducer: Reducer<Game> = (state, action) => {
       };
 
       sendWs(
-        client,
+        [client],
         { gameId: state.id, code: state.code },
         MessageTypeGame.JOIN_GAME_SUCCESS,
       );
@@ -244,7 +256,7 @@ export const gameReducer: Reducer<Game> = (state, action) => {
       state.players.forEach((player) => {
         player.ws.forEach((client) => {
           sendWs(
-            client,
+            [client],
             { playerName: name, playerCount: state.players.length },
             MessageTypeGame.PLAYER_JOIN,
           );
@@ -286,13 +298,13 @@ export const gameReducer: Reducer<Game> = (state, action) => {
       const index = action.data.index;
 
       if (index !== state.hostId) {
-        sendWs(client, START_ERROR_MESSAGE, MessageTypeError.ERROR);
+        sendWs([client], START_ERROR_MESSAGE, MessageTypeError.ERROR);
         ColorLog.error(`❌ ${START_ERROR_MESSAGE.message}`);
         return state;
       }
 
       if (state.status !== 'waiting') {
-        sendWs(client, INPROGRESS_ERROR_MESSAGE, MessageTypeError.ERROR);
+        sendWs([client], INPROGRESS_ERROR_MESSAGE, MessageTypeError.ERROR);
         ColorLog.error(`❌ ${INPROGRESS_ERROR_MESSAGE.message}`);
         return state;
       }
@@ -328,14 +340,14 @@ export const gameReducer: Reducer<Game> = (state, action) => {
       );
 
       if (!currentPlayer) {
-        sendWs(client, NOT_JOIN_ERROR_MESSAGE, MessageTypeError.ERROR);
+        sendWs([client], NOT_JOIN_ERROR_MESSAGE, MessageTypeError.ERROR);
         ColorLog.error(`❌ ${NOT_JOIN_ERROR_MESSAGE.message}`);
         return state;
       }
 
       if (state.currentQuestion !== questionIndex) {
         sendWs(
-          client,
+          [client],
           NOT_CURRENT_QUESTION_ERROR_MESSAGE,
           MessageTypeError.ERROR,
         );
@@ -344,7 +356,7 @@ export const gameReducer: Reducer<Game> = (state, action) => {
       }
 
       if (state.playerAnswers.has(index)) {
-        sendWs(client, ALREADY_ANSWER_ERROR_MESSAGE, MessageTypeError.ERROR);
+        sendWs([client], ALREADY_ANSWER_ERROR_MESSAGE, MessageTypeError.ERROR);
         ColorLog.error(`❌ ${ALREADY_ANSWER_ERROR_MESSAGE.message}`);
         return state;
       }
@@ -355,7 +367,7 @@ export const gameReducer: Reducer<Game> = (state, action) => {
             MILLISECONDS_IN_SECOND <
         timestamp
       ) {
-        sendWs(client, LATE_ANSWER_ERROR_MESSAGE, MessageTypeError.ERROR);
+        sendWs([client], LATE_ANSWER_ERROR_MESSAGE, MessageTypeError.ERROR);
         ColorLog.error(`❌ ${LATE_ANSWER_ERROR_MESSAGE.message}`);
         return state;
       }
@@ -366,7 +378,7 @@ export const gameReducer: Reducer<Game> = (state, action) => {
       currentPlayer.answeredCorrectly =
         state.questions[state.currentQuestion].correctIndex === answerIndex;
 
-      sendWs(client, { questionIndex }, MessageTypeGame.ANSWER_ACCEPTED);
+      sendWs([client], { questionIndex }, MessageTypeGame.ANSWER_ACCEPTED);
       ColorLog.success(`🍿 Accepted answer from ${currentPlayer.name}`);
       return { ...state };
     }

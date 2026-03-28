@@ -52,7 +52,7 @@ class GameService {
     const status: Game['status'] = 'waiting';
     const playerAnswers: Game['playerAnswers'] = new Map();
 
-    sendWs(client, { gameId: id, code }, MessageTypeGame.CREATE_GAME_SUCCESS);
+    sendWs([client], { gameId: id, code }, MessageTypeGame.CREATE_GAME_SUCCESS);
     ColorLog.primary(
       `🎲 A new game successfully created. Use the invitation code: ${code}`,
     );
@@ -161,7 +161,7 @@ class GameService {
 
     if (!id || !this.games.has(id)) {
       sendWs(
-        client,
+        [client],
         { message: `Game with code ${code} not found` },
         MessageTypeError.ERROR,
       );
@@ -185,7 +185,7 @@ class GameService {
     const game = this.games.get(gameId);
     if (!game) {
       sendWs(
-        client,
+        [client],
         { message: `Game with specified id not found` },
         MessageTypeError.ERROR,
       );
@@ -203,7 +203,7 @@ class GameService {
     const game = this.games.get(gameId);
     if (!game) {
       sendWs(
-        client,
+        [client],
         { message: `Game with specified id not found` },
         MessageTypeError.ERROR,
       );

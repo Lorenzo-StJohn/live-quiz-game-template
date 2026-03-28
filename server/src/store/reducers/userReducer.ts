@@ -39,7 +39,7 @@ export const userReducer: Reducer<UserState> = (state, action) => {
           ws: [client],
         };
         sendWs(
-          client,
+          [client],
           { name, index, error, errorText },
           MessageTypeUser.REGISTRATION,
         );
@@ -54,7 +54,7 @@ export const userReducer: Reducer<UserState> = (state, action) => {
       index = userRegistered.index;
       if (userRegistered.password === password) {
         sendWs(
-          client,
+          [client],
           { name, index, error, errorText },
           MessageTypeUser.REGISTRATION,
         );
@@ -71,7 +71,7 @@ export const userReducer: Reducer<UserState> = (state, action) => {
       error = true;
       errorText = ERROR_MESSAGE;
       sendWs(
-        client,
+        [client],
         { name, index, error, errorText },
         MessageTypeUser.REGISTRATION,
       );
