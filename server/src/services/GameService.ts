@@ -8,21 +8,28 @@ import {
   type Question,
   MessageTypeError,
   MessageTypeGame,
+  MessageTypeUser,
 } from '../types';
 import { ColorLog } from '../utils/ColorLog';
 import { generateCode } from '../utils/generateCode';
 import { sendWs } from '../utils/sendWs';
-import { gameReducer } from '../store/reducers/gameReducer';
+import {
+  gameReducer,
+  MILLISECONDS_IN_SECOND,
+} from '../store/reducers/gameReducer';
 
 class GameService {
   private games: Map<string, Store<Game>>;
   private codeMap: Map<string, string>;
   private wsMap: Map<WebSocket, string>;
+  private timers: Map<string, NodeJS.Timeout>;
+  private RESULT_SHOW_TIME = 3000;
 
   constructor() {
     this.games = new Map<string, Store<Game>>();
     this.codeMap = new Map<string, string>();
     this.wsMap = new Map<WebSocket, string>();
+    this.timers = new Map<string, NodeJS.Timeout>();
   }
 
   public createGame(action: Action) {
@@ -67,13 +74,70 @@ class GameService {
     this.codeMap.set(game.code, game.id);
 
     gameStore.subscribe((state, action) => {
-      if (action.type === MessageTypeGame.START_GAME) {
-        gameStore.dispatch({
-          type: MessageTypeGame.NEXT_QUESTION,
-          data: {
-            players: state.players,
-          },
-        });
+      switch (action.type) {
+        case MessageTypeGame.START_GAME: {
+          gameStore.dispatch({
+            type: MessageTypeGame.NEXT_QUESTION,
+            data: {
+              players: state.players,
+            },
+          });
+          break;
+        }
+
+        case MessageTypeGame.NEXT_QUESTION: {
+          if (state.status === 'finished') {
+            gameStore.dispatch({
+              type: MessageTypeGame.GAME_FINISHED,
+              data: {},
+            });
+            break;
+          }
+          const timer = setTimeout(() => {
+            gameStore.dispatch({
+              type: MessageTypeGame.QUESTION_RESULT,
+              data: {},
+            });
+          }, state.questions[state.currentQuestion].timeLimitSec * MILLISECONDS_IN_SECOND);
+          this.timers.set(state.id, timer);
+          break;
+        }
+
+        case MessageTypeGame.ANSWER: {
+          if (state.playerAnswers.size === state.players.length) {
+            clearTimeout(this.timers.get(state.id));
+            gameStore.dispatch({
+              type: MessageTypeGame.QUESTION_RESULT,
+              data: {},
+            });
+          }
+          break;
+        }
+
+        case MessageTypeUser.DISCONNECTION: {
+          if (
+            state.status === 'in_progress' &&
+            state.playerAnswers.size === state.players.length
+          ) {
+            clearTimeout(this.timers.get(state.id));
+            gameStore.dispatch({
+              type: MessageTypeGame.QUESTION_RESULT,
+              data: {},
+            });
+          }
+          break;
+        }
+
+        case MessageTypeGame.QUESTION_RESULT: {
+          setTimeout(() => {
+            gameStore.dispatch({
+              type: MessageTypeGame.NEXT_QUESTION,
+              data: {
+                players: state.players,
+              },
+            });
+          }, this.RESULT_SHOW_TIME);
+        }
       }
     });
   }
@@ -116,7 +180,25 @@ class GameService {
 
   public startGame(action: Action) {
     const client: WebSocket = action.data.wsClient;
-    const { index, gameId } = action.data;
+    const { gameId } = action.data;
+
+    const game = this.games.get(gameId);
+    if (!game) {
+      sendWs(
+        client,
+        { message: `Game with specified id not found` },
+        MessageTypeError.ERROR,
+      );
+      ColorLog.error(`❌ Game with id ${gameId} not found`);
+      return;
+    }
+
+    game.dispatch(action);
+  }
+
+  public answer(action: Action) {
+    const client: WebSocket = action.data.wsClient;
+    const { gameId } = action.data;
 
     const game = this.games.get(gameId);
     if (!game) {

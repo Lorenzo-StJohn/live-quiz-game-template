@@ -11,6 +11,10 @@ import { ColorLog } from '../../utils/ColorLog';
 import { sendWs } from '../../utils/sendWs';
 import type { Reducer } from '../types';
 
+const BASE_POINTS = 1000;
+
+export const MILLISECONDS_IN_SECOND = 1000;
+
 const HOST_ERROR_MESSAGE = {
   message: "You cant't join your own game",
 };
@@ -25,6 +29,22 @@ const INPROGRESS_ERROR_MESSAGE = {
 
 const JOIN_FINISHED_ERROR_MESSAGE = {
   message: "You cant't join already finished game",
+};
+
+const NOT_JOIN_ERROR_MESSAGE = {
+  message: "You cant't answer because you haven't joined this game",
+};
+
+const NOT_CURRENT_QUESTION_ERROR_MESSAGE = {
+  message: "You're trying to answer to not current question",
+};
+
+const ALREADY_ANSWER_ERROR_MESSAGE = {
+  message: "You've already answered to this question",
+};
+
+const LATE_ANSWER_ERROR_MESSAGE = {
+  message: 'Time for answering to this question has expired',
 };
 
 const updateBroadcast = (state: Game, client?: WebSocket) => {
@@ -54,8 +74,9 @@ const updateBroadcast = (state: Game, client?: WebSocket) => {
 
 const questionBroadcast = (state: Game, client?: WebSocket) => {
   const dateNow = Date.now();
+  // +1 because pre-written client for some reason sends back questionIndex - 1, not questionIndex
   const data = {
-    questionNumber: state.currentQuestion,
+    questionNumber: state.currentQuestion + 1,
     totalQuestions: state.questions.length,
     text: state.questions[state.currentQuestion].text,
     options: state.questions[state.currentQuestion].options,
@@ -78,6 +99,85 @@ const questionBroadcast = (state: Game, client?: WebSocket) => {
   if (state.hostWs) {
     sendWs(state.hostWs, data, MessageTypeGame.QUESTION);
   }
+};
+
+const calculateScore = (
+  timestamp: number,
+  questionStartTime: number,
+  timeLimitSec: number,
+) => {
+  const questionScore = Math.max(
+    0,
+    (BASE_POINTS *
+      (timeLimitSec * MILLISECONDS_IN_SECOND -
+        (timestamp - questionStartTime))) /
+      (timeLimitSec * MILLISECONDS_IN_SECOND),
+  );
+  return Number(questionScore.toFixed(0));
+};
+
+const resultBroadcast = (state: Game) => {
+  const earned = state.players.map((player) => {
+    return player.hasAnswered && player.answeredCorrectly
+      ? calculateScore(
+          state.playerAnswers.get(player.index)!.timestamp,
+          state.questionStartTime!,
+          state.questions[state.currentQuestion].timeLimitSec,
+        )
+      : 0;
+  });
+
+  state.players.forEach((player, index) => {
+    player.score += earned[index];
+  });
+
+  const playerResults = state.players.map((player, index) => {
+    return {
+      name: player.name,
+      answered: player.hasAnswered,
+      correct: player.hasAnswered && player.answeredCorrectly,
+      pointsEarned: earned[index],
+      totalScore: player.score,
+    };
+  });
+
+  const data = {
+    questionIndex: state.currentQuestion,
+    correctIndex: state.questions[state.currentQuestion].correctIndex,
+    playerResults,
+  };
+
+  if (state.hostWs) {
+    sendWs(state.hostWs, data, MessageTypeGame.QUESTION_RESULT);
+  }
+
+  state.players.forEach((player) => {
+    player.ws.forEach((ws) => {
+      sendWs(ws, data, MessageTypeGame.QUESTION_RESULT);
+    });
+  });
+};
+
+const finishResultBroadcast = (state: Game) => {
+  const sortedPlayers = state.players.sort((a, b) => b.score - a.score);
+  const scoreboard = sortedPlayers.map((player, index) => {
+    return {
+      name: player.name,
+      score: player.score,
+      rank: index + 1,
+    };
+  });
+  const data = { scoreboard };
+
+  if (state.hostWs) {
+    sendWs(state.hostWs, data, MessageTypeGame.GAME_FINISHED);
+  }
+
+  state.players.forEach((player) => {
+    player.ws.forEach((ws) => {
+      sendWs(ws, data, MessageTypeGame.GAME_FINISHED);
+    });
+  });
 };
 
 export const gameReducer: Reducer<Game> = (state, action) => {
@@ -171,6 +271,7 @@ export const gameReducer: Reducer<Game> = (state, action) => {
             return;
           }
           state.players.splice(index, 1);
+          state.playerAnswers.delete(player.index);
           updateBroadcast(state);
           return;
         }
@@ -206,11 +307,80 @@ export const gameReducer: Reducer<Game> = (state, action) => {
         return { ...state };
       }
       state.questionStartTime = Date.now();
+      state.playerAnswers.clear();
       questionBroadcast(state);
+      state.players.forEach((player) => {
+        player.hasAnswered = false;
+      });
       ColorLog.plain(
         `💌 Question ${state.currentQuestion}: ${state.questions[state.currentQuestion].text}`,
       );
       return { ...state };
+    }
+
+    case MessageTypeGame.ANSWER: {
+      const client = action.data.wsClient;
+      const { index, questionIndex, answerIndex, timestamp } = action.data;
+      const currentPlayer = state.players.find(
+        (player) => player.index === index,
+      );
+
+      if (!currentPlayer) {
+        sendWs(client, NOT_JOIN_ERROR_MESSAGE, MessageTypeError.ERROR);
+        ColorLog.error(`❌ ${NOT_JOIN_ERROR_MESSAGE.message}`);
+        return state;
+      }
+
+      if (state.currentQuestion !== questionIndex) {
+        sendWs(
+          client,
+          NOT_CURRENT_QUESTION_ERROR_MESSAGE,
+          MessageTypeError.ERROR,
+        );
+        ColorLog.error(`❌ ${NOT_CURRENT_QUESTION_ERROR_MESSAGE.message}`);
+        return state;
+      }
+
+      if (state.playerAnswers.has(index)) {
+        sendWs(client, ALREADY_ANSWER_ERROR_MESSAGE, MessageTypeError.ERROR);
+        ColorLog.error(`❌ ${ALREADY_ANSWER_ERROR_MESSAGE.message}`);
+        return state;
+      }
+
+      if (
+        state.questionStartTime! +
+          state.questions[state.currentQuestion].timeLimitSec *
+            MILLISECONDS_IN_SECOND <
+        timestamp
+      ) {
+        sendWs(client, LATE_ANSWER_ERROR_MESSAGE, MessageTypeError.ERROR);
+        ColorLog.error(`❌ ${LATE_ANSWER_ERROR_MESSAGE.message}`);
+        return state;
+      }
+
+      state.playerAnswers.set(index, { answerIndex, timestamp });
+
+      currentPlayer.hasAnswered = true;
+      currentPlayer.answeredCorrectly =
+        state.questions[state.currentQuestion].correctIndex === answerIndex;
+
+      sendWs(client, { questionIndex }, MessageTypeGame.ANSWER_ACCEPTED);
+      ColorLog.success(`🍿 Accepted answer from ${currentPlayer.name}`);
+      return { ...state };
+    }
+
+    case MessageTypeGame.QUESTION_RESULT: {
+      resultBroadcast(state);
+      ColorLog.tertiary(
+        `🎯 Time to see results for ${state.currentQuestion} question`,
+      );
+      return { ...state };
+    }
+
+    case MessageTypeGame.GAME_FINISHED: {
+      finishResultBroadcast(state);
+      ColorLog.primary('🏆 Time to see the final results');
+      return state;
     }
 
     default: {

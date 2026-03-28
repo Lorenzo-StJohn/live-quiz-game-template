@@ -54,6 +54,10 @@ export const MessageTypeGame = {
   START_GAME: 'start_game',
   NEXT_QUESTION: 'next_question',
   QUESTION: 'question',
+  QUESTION_RESULT: 'question_result',
+  GAME_FINISHED: 'game_finished',
+  ANSWER: 'answer',
+  ANSWER_ACCEPTED: 'answer_accepted',
 } as const;
 
 export const MessageTypeError = {

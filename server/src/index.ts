@@ -6,7 +6,7 @@ import { MessageTypeError, MessageTypeGame, MessageTypeUser } from './types';
 import { commonParse } from './utils/json-parse';
 import { sendWs } from './utils/sendWs';
 import { userStore } from './store/userStore';
-import { gameService } from './services/gameService';
+import { gameService } from './services/GameService';
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 const ERROR_MESSAGE = {
@@ -103,6 +103,27 @@ wss.on('connection', (wsClient: WebSocket) => {
           },
         });
         break;
+      }
+
+      case MessageTypeGame.ANSWER: {
+        const timestamp = Date.now();
+        const name = userState.socketMap.get(wsClient);
+        if (!name) {
+          return sendWs(wsClient, USER_ERROR_MESSAGE, MessageTypeError.ERROR);
+        }
+        const index = userState.nameMap.get(name)!.index;
+
+        gameService.answer({
+          type: MessageTypeGame.ANSWER,
+          data: {
+            wsClient,
+            index,
+            gameId: message.data.gameId,
+            questionIndex: message.data.questionIndex,
+            answerIndex: message.data.answerIndex,
+            timestamp,
+          },
+        });
       }
     }
   });

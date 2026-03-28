@@ -83,6 +83,9 @@ export const commonParse = (msg: any) => {
       case MessageTypeGame.START_GAME: {
         return gameStartingParse(msg);
       }
+      case MessageTypeGame.ANSWER: {
+        return answerParse(msg);
+      }
       default: {
         return null;
       }
@@ -119,6 +122,17 @@ const gameJoiningParse = (message: WSMessage): WSMessage | null => {
 
 const gameStartingParse = (message: WSMessage): WSMessage | null => {
   return 'gameId' in message.data && typeof message.data.gameId === 'string'
+    ? message
+    : null;
+};
+
+const answerParse = (message: WSMessage): WSMessage | null => {
+  return 'gameId' in message.data &&
+    typeof message.data.gameId === 'string' &&
+    'questionIndex' in message.data &&
+    typeof message.data.questionIndex === 'number' &&
+    'answerIndex' in message.data &&
+    typeof message.data.answerIndex === 'number'
     ? message
     : null;
 };
