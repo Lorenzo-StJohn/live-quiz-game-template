@@ -10,23 +10,24 @@ export const sendWs = (clients: WebSocket[], data: any, type: string) => {
 
   const dateNow = Date.now();
   const delay = clients.reduce((accumulator, currentClient) => {
-    const lastSending = wsMap.get(currentClient) ?? 0;
-    const currentDelay = Math.max(lastSending + SAFE_DELAY - dateNow, 0);
+    const lastSendTime = wsMap.get(currentClient) ?? 0;
+    const currentDelay = Math.max(lastSendTime + SAFE_DELAY - dateNow, 0);
     return Math.max(accumulator, currentDelay);
   }, 0);
 
-  const sendTime = dateNow + delay;
+  const currentSendTime = dateNow + delay;
   clients.forEach((client) => {
-    wsMap.set(client, sendTime);
+    wsMap.set(client, currentSendTime);
+  });
+
+  const payload = JSON.stringify({
+    type,
+    data,
+    id: 0,
   });
 
   setTimeout(() => {
     clients.forEach((client) => {
-      const payload = JSON.stringify({
-        type,
-        data,
-        id: 0,
-      });
       if (client.readyState === WebSocket.OPEN) {
         client.send(payload);
       } else {
