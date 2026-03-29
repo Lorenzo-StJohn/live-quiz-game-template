@@ -1,6 +1,6 @@
 import { WebSocket } from 'ws';
 
-import type { User } from '../types';
+import type { User } from '../types.js';
 
 export interface Action {
   type: string;

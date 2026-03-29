@@ -4,7 +4,7 @@ import {
   type Question,
   MessageTypeUser,
   MessageTypeGame,
-} from '../types';
+} from '../types.js';
 
 const isWSMessage = (msg: unknown): msg is WSMessage => {
   return (

@@ -6,10 +6,10 @@ import {
   MessageTypeGame,
   MessageTypeUser,
   type Player,
-} from '../../types';
-import { ColorLog } from '../../utils/ColorLog';
-import { sendWs } from '../../utils/sendWs';
-import type { Reducer } from '../types';
+} from '../../types.js';
+import { ColorLog } from '../../utils/ColorLog.js';
+import { sendWs } from '../../utils/sendWs.js';
+import type { Reducer } from '../types.js';
 
 const BASE_POINTS = 1000;
 

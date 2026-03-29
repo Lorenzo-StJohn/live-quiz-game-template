@@ -1,9 +1,9 @@
 import type { WebSocket } from 'ws';
 
-import { MessageTypeUser, type User } from '../../types';
-import { ColorLog } from '../../utils/ColorLog';
-import { sendWs } from '../../utils/sendWs';
-import type { Reducer, UserState } from '../types';
+import { MessageTypeUser, type User } from '../../types.js';
+import { ColorLog } from '../../utils/ColorLog.js';
+import { sendWs } from '../../utils/sendWs.js';
+import type { Reducer, UserState } from '../types.js';
 
 const ERROR_MESSAGE = 'Wrong password';
 

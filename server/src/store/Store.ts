@@ -1,4 +1,4 @@
-import type { Action, Listener, Reducer } from './types';
+import type { Action, Listener, Reducer } from './types.js';
 
 export class Store<T> {
   private state: T;

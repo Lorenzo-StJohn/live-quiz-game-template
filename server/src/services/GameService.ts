@@ -1,7 +1,7 @@
 import type { WebSocket } from 'ws';
 
-import { Store } from '../store/Store';
-import type { Action } from '../store/types';
+import { Store } from '../store/Store.js';
+import type { Action } from '../store/types.js';
 import {
   type Game,
   type Player,
@@ -9,14 +9,14 @@ import {
   MessageTypeError,
   MessageTypeGame,
   MessageTypeUser,
-} from '../types';
-import { ColorLog } from '../utils/ColorLog';
-import { generateCode } from '../utils/generateCode';
-import { sendWs } from '../utils/sendWs';
+} from '../types.js';
+import { ColorLog } from '../utils/ColorLog.js';
+import { generateCode } from '../utils/generateCode.js';
+import { sendWs } from '../utils/sendWs.js';
 import {
   gameReducer,
   MILLISECONDS_IN_SECOND,
-} from '../store/reducers/gameReducer';
+} from '../store/reducers/gameReducer.js';
 
 class GameService {
   private games: Map<string, Store<Game>>;

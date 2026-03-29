@@ -1,12 +1,12 @@
 import { WebSocket, WebSocketServer } from 'ws';
 import 'dotenv/config';
 
-import { ColorLog } from './utils/ColorLog';
-import { MessageTypeError, MessageTypeGame, MessageTypeUser } from './types';
-import { commonParse } from './utils/json-parse';
-import { sendWs } from './utils/sendWs';
-import { userStore } from './store/userStore';
-import { gameService } from './services/GameService';
+import { ColorLog } from './utils/ColorLog.js';
+import { MessageTypeError, MessageTypeGame, MessageTypeUser } from './types.js';
+import { commonParse } from './utils/json-parse.js';
+import { sendWs } from './utils/sendWs.js';
+import { userStore } from './store/userStore.js';
+import { gameService } from './services/GameService.js';
 
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 const ERROR_MESSAGE = {
