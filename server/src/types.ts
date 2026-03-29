@@ -4,9 +4,10 @@ export interface Player {
   name: string;
   index: string;
   score: number;
-  ws?: WebSocket;
+  ws: WebSocket[];
   hasAnswered?: boolean;
   answerTime?: number;
+  answerIndex?: number;
   answeredCorrectly?: boolean;
 }
 
@@ -21,8 +22,10 @@ export interface Game {
   id: string;
   code: string;
   hostId: string;
+  hostWs: WebSocket | null;
   questions: Question[];
   players: Player[];
+  oldPlayers: Player[];
   currentQuestion: number;
   status: 'waiting' | 'in_progress' | 'finished';
   questionStartTime?: number;
@@ -34,11 +37,44 @@ export interface User {
   name: string;
   password: string;
   index: string;
-  ws?: WebSocket;
+  ws: WebSocket[];
 }
 
+export const MessageTypeUser = {
+  REGISTRATION: 'reg',
+  CONNECTION: 'connection',
+  DISCONNECTION: 'disconnection',
+} as const;
+
+export const MessageTypeGame = {
+  CREATE_GAME: 'create_game',
+  CREATE_GAME_SUCCESS: 'game_created',
+  JOIN_GAME: 'join_game',
+  JOIN_GAME_SUCCESS: 'game_joined',
+  PLAYER_JOIN: 'player_joined',
+  UPDATE_PLAYERS: 'update_players',
+  START_GAME: 'start_game',
+  NEXT_QUESTION: 'next_question',
+  QUESTION: 'question',
+  QUESTION_RESULT: 'question_result',
+  GAME_FINISHED: 'game_finished',
+  ANSWER: 'answer',
+  ANSWER_ACCEPTED: 'answer_accepted',
+} as const;
+
+export const MessageTypeError = {
+  ERROR: 'error',
+} as const;
+
+type MessageTypeKnown =
+  | (typeof MessageTypeUser)[keyof typeof MessageTypeUser]
+  | (typeof MessageTypeGame)[keyof typeof MessageTypeGame]
+  | (typeof MessageTypeError)[keyof typeof MessageTypeError];
+
+type MessageTypeUnknown = string;
+
 export interface WSMessage {
-  type: string;
+  type: MessageTypeKnown | MessageTypeUnknown;
   data: any;
   id: number;
 }
