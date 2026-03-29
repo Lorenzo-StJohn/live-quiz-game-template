@@ -32,7 +32,7 @@ git checkout development
 ### 4. Install dependencies
 
 ```bash
-npm ci
+npm run install:all
 ```
 
 ### 5. Create .env file
@@ -56,7 +56,7 @@ npm run dev
 
 - Or separately:
   - Start the server: `npm run start:server`
-  - Start the client (in another terminal, go to the project folder again, if needed: `cd live-quiz-game-template` ): `npm run start:client`
+  - Start the client (in another terminal, go to the project folder again, if needed: `cd live-quiz-game-template`): `npm run start:client`
 
 2. Open `http://localhost:5173` in two browser tabs
 3. In one tab — register and create a game (host)
