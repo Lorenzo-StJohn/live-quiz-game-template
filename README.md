@@ -1,68 +1,48 @@
 # Assignment: WebSocket Live Quiz Game
 
-## What to do
+## Description
 
-1. **Fork** this repository
-2. **Implement** the WebSocket server in the `server/` folder
-3. The **client** (React frontend) in `client/` is already fully implemented and ready to use — do not modify it
+This repository contains solution for [Assignment: WebSocket — Live Quiz Game](https://github.com/AlreadyBored/nodejs-assignments/blob/main/assignments-v2/04-websockets/assignment.md). It has custom implementation of a server and a pre-written client.
 
-## Project structure
+## Requirements
 
-```
-├── client/          # Frontend (React + Vite) — fully working, do not modify
-├── server/          # Backend (Node.js + ws) — YOUR implementation goes here
-│   ├── src/
-│   │   ├── index.ts   # Server entry point (starter code provided)
-│   │   └── types.ts   # TypeScript interfaces for all data structures
-│   ├── package.json
-│   └── tsconfig.json
-└── package.json     # Root workspace config
-```
+- **Node.js** version: >=24.10.0
+- **npm** version: >=10.9.2
 
 ## Getting started
 
+### 1. Clone repository
+
 ```bash
-# Install all dependencies (server + client)
-npm install
-
-# Run both server and client in dev mode
-npm run dev
-
-# Or run them separately:
-npm run start:server   # server only (ws://localhost:3000)
-npm run start:client   # client only (http://localhost:5173)
+git clone https://github.com/Lorenzo-StJohn/live-quiz-game-template
 ```
 
-## What is provided in `server/`
+### 2. Go to the project folder
 
-- **`src/types.ts`** — all TypeScript interfaces you need: `Player`, `Question`, `Game`, `User`, `WSMessage`, and request data types (`RegData`, `CreateGameData`, `JoinGameData`, `StartGameData`, `AnswerData`)
-- **`src/index.ts`** — starter code that creates a `WebSocketServer` on port 3000. You need to implement all message handlers here
-- **`package.json`** — dependencies already configured (`ws`, `dotenv`, TypeScript tooling)
+```bash
+cd live-quiz-game-template
+```
 
-## What you need to implement
+### 3. Checkout to the development branch
 
-Your server must handle all WebSocket commands described in the assignment specification. The client expects the following message protocol (all messages are JSON strings with `{ type, data, id: 0 }` format):
+```bash
+git checkout development
+```
 
-**Client → Server commands:**
-- `reg` — register or login a player
-- `create_game` — host creates a game with questions
-- `join_game` — player joins a game by room code
-- `start_game` — host starts the game
-- `answer` — player submits an answer
+### 4. Install dependencies
 
-**Server → Client responses:**
-- `reg` — registration result
-- `game_created` — game created with gameId and room code
-- `game_joined` — join confirmation
-- `player_joined` — broadcast when a player joins
-- `update_players` — broadcast updated player list
-- `question` — broadcast a question (without correct answer!)
-- `answer_accepted` — answer submission confirmed
-- `question_result` — broadcast results after a question ends
-- `game_finished` — broadcast final scoreboard
-- `error` — error message
+```bash
+npm ci
+```
 
-Refer to the full assignment specification for detailed data structures and the expected game flow.
+### 5. Create .env file
+
+```bash
+cp .env.example .env
+```
+
+> [!WARNING]
+> Pre-written by the course's author client works only with `3000` port!
 
 ## How to test
 
@@ -73,13 +53,3 @@ Refer to the full assignment specification for detailed data structures and the 
 5. In the other tab — register and join the game using the room code
 6. Host starts the game, player answers questions
 7. Verify scores, results, and final scoreboard
-
-## Build for production
-
-```bash
-# Build server
-cd server && npm run build
-
-# Start built server
-npm run start
-```
