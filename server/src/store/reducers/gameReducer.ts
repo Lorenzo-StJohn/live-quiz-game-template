@@ -126,11 +126,25 @@ const resultBroadcast = (state: Game) => {
   const earned = state.players.map((player) => {
     return player.hasAnswered && player.answeredCorrectly
       ? calculateScore(
-          state.playerAnswers.get(player.index)!.timestamp,
+          player.answerTime!,
           state.questionStartTime!,
           state.questions[state.currentQuestion].timeLimitSec,
         )
       : 0;
+  });
+
+  const earnedByOld = state.oldPlayers.map((player) => {
+    return player.hasAnswered && player.answeredCorrectly
+      ? calculateScore(
+          player.answerTime!,
+          state.questionStartTime!,
+          state.questions[state.currentQuestion].timeLimitSec,
+        )
+      : 0;
+  });
+
+  state.oldPlayers.forEach((player, index) => {
+    player.score += earnedByOld[index];
   });
 
   state.players.forEach((player, index) => {
@@ -234,6 +248,40 @@ export const gameReducer: Reducer<Game> = (state, action) => {
         }
         return { ...state };
       }
+
+      const oldPlayerArrayIndex = state.oldPlayers.findIndex(
+        (player) => player.index === index,
+      );
+
+      if (oldPlayerArrayIndex !== -1) {
+        sendWs(
+          [client],
+          { gameId: state.id, code: state.code },
+          MessageTypeGame.JOIN_GAME_SUCCESS,
+        );
+        ColorLog.warn(
+          `🔔 Player ${name} joined the game with code ${state.code} after disconnection`,
+        );
+        updateBroadcast(state);
+        if (state.status === 'in_progress') {
+          questionBroadcast(state, client);
+        }
+        state.oldPlayers[oldPlayerArrayIndex].ws = [client];
+
+        if (state.oldPlayers[oldPlayerArrayIndex].hasAnswered) {
+          state.playerAnswers.set(state.oldPlayers[oldPlayerArrayIndex].index, {
+            answerIndex: state.oldPlayers[oldPlayerArrayIndex].answerIndex!,
+            timestamp: state.oldPlayers[oldPlayerArrayIndex].answerTime!,
+          });
+        }
+
+        state.players.push(state.oldPlayers[oldPlayerArrayIndex]);
+
+        state.oldPlayers.slice(oldPlayerArrayIndex, 1);
+
+        return { ...state };
+      }
+
       const ws = [client];
 
       const player: Player = {
@@ -284,6 +332,8 @@ export const gameReducer: Reducer<Game> = (state, action) => {
           if (player.ws.length > 0) {
             return;
           }
+          const oldPlayer = state.players[index];
+          state.oldPlayers.push(oldPlayer);
           state.players.splice(index, 1);
           state.playerAnswers.delete(player.index);
           updateBroadcast(state);
@@ -324,6 +374,9 @@ export const gameReducer: Reducer<Game> = (state, action) => {
       state.playerAnswers.clear();
       questionBroadcast(state);
       state.players.forEach((player) => {
+        player.hasAnswered = false;
+      });
+      state.oldPlayers.forEach((player) => {
         player.hasAnswered = false;
       });
       ColorLog.plain(
@@ -377,7 +430,8 @@ export const gameReducer: Reducer<Game> = (state, action) => {
       currentPlayer.hasAnswered = true;
       currentPlayer.answeredCorrectly =
         state.questions[state.currentQuestion].correctIndex === answerIndex;
-
+      currentPlayer.answerIndex = answerIndex;
+      currentPlayer.answerTime = timestamp;
       sendWs([client], { questionIndex }, MessageTypeGame.ANSWER_ACCEPTED);
       ColorLog.success(`🍿 Accepted answer from ${currentPlayer.name}`);
       return { ...state };

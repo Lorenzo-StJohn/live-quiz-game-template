@@ -48,6 +48,7 @@ class GameService {
 
     const questions: Question[] = action.data.questions;
     const players: Player[] = [];
+    const oldPlayers: Player[] = [];
     const currentQuestion = -1;
     const status: Game['status'] = 'waiting';
     const playerAnswers: Game['playerAnswers'] = new Map();
@@ -64,6 +65,7 @@ class GameService {
       hostWs,
       questions,
       players,
+      oldPlayers,
       currentQuestion,
       status,
       playerAnswers,
@@ -94,6 +96,7 @@ class GameService {
             break;
           }
           const timer = setTimeout(() => {
+            this.timers.delete(state.id);
             gameStore.dispatch({
               type: MessageTypeGame.QUESTION_RESULT,
               data: {},
@@ -104,8 +107,12 @@ class GameService {
         }
 
         case MessageTypeGame.ANSWER: {
-          if (state.playerAnswers.size === state.players.length) {
+          if (
+            state.playerAnswers.size === state.players.length &&
+            this.timers.get(state.id)
+          ) {
             clearTimeout(this.timers.get(state.id));
+            this.timers.delete(state.id);
             gameStore.dispatch({
               type: MessageTypeGame.QUESTION_RESULT,
               data: {},
@@ -117,9 +124,11 @@ class GameService {
         case MessageTypeUser.DISCONNECTION: {
           if (
             state.status === 'in_progress' &&
-            state.playerAnswers.size === state.players.length
+            state.playerAnswers.size === state.players.length &&
+            this.timers.get(state.id)
           ) {
             clearTimeout(this.timers.get(state.id));
+            this.timers.delete(state.id);
             gameStore.dispatch({
               type: MessageTypeGame.QUESTION_RESULT,
               data: {},
@@ -137,6 +146,7 @@ class GameService {
               },
             });
           }, this.RESULT_SHOW_TIME);
+          break;
         }
       }
     });
