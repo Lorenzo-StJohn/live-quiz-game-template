@@ -38,7 +38,9 @@ npm ci
 ### 5. Create .env file
 
 ```bash
+cd server
 cp .env.example .env
+cd ..
 ```
 
 > [!WARNING]
@@ -46,10 +48,18 @@ cp .env.example .env
 
 ## How to test
 
-1. Start the server: `npm run start:server`
-2. Start the client: `npm run start:client`
-3. Open `http://localhost:5173` in two browser tabs
-4. In one tab — register and create a game (host)
-5. In the other tab — register and join the game using the room code
-6. Host starts the game, player answers questions
-7. Verify scores, results, and final scoreboard
+1. Run the client and the server simultaneously:
+
+```bash
+npm run dev
+```
+
+- Or separately:
+  - Start the server: `npm run start:server`
+  - Start the client (in another terminal, go to the project folder again, if needed: `cd live-quiz-game-template` ): `npm run start:client`
+
+2. Open `http://localhost:5173` in two browser tabs
+3. In one tab — register and create a game (host)
+4. In the other tab — register and join the game using the room code
+5. Host starts the game, player answers questions
+6. Verify scores, results, and final scoreboard
